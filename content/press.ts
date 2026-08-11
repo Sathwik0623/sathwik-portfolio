@@ -13,13 +13,6 @@ export const pressMentions: PressMention[] = [
       "The Tech for Social Good Hackathon reminded me that the skills we hone and develop every day at Cisco can be genuinely life-changing for communities that have never had access to them.",
   },
   {
-    id: "cisco-bridge",
-    source: "Cisco Bridge",
-    title: "Scaling Impact: How Your Skills Can Help Power Our Purpose",
-    url: "https://wwwin.cisco.com/c/cec/news/global-employee-headlines/scaling-impact-how-your-skills-can-help-power-our-purpose.html",
-    internal: true,
-  },
-  {
     id: "cisco-linkedin",
     source: "Cisco on LinkedIn",
     title: "How can AI drive meaningful social impact?",
