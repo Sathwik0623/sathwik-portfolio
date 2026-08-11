@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 // Anonymous visitor session - random id stored in a first-party cookie, no PII, no fingerprinting.

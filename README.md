@@ -1,7 +1,7 @@
 # Sathwik Kothapalli — Portfolio
 
 Personal engineering portfolio built with Next.js (App Router), TypeScript, Tailwind CSS,
-Framer Motion, Prisma/SQLite, and a privacy-conscious first-party analytics + admin dashboard.
+Framer Motion, Prisma/PostgreSQL (Supabase), and a privacy-conscious first-party analytics + admin dashboard.
 
 ## Getting started
 
@@ -19,9 +19,11 @@ Open http://localhost:3000. The admin dashboard is at `/admin` (see below).
 1. **Set environment variables** (see `.env.example`):
    - `ADMIN_PASSWORD` — password for `/admin`. Change the default before deploying.
    - `ADMIN_SESSION_SECRET` — random 32-byte base64 string signing the admin session cookie.
-   - `DATABASE_URL` — SQLite works for a single-instance deploy; for Vercel or serverless,
-     swap the Prisma datasource to Postgres/Supabase (update `prisma/schema.prisma` datasource
-     provider + `DATABASE_URL`, then `npx prisma migrate deploy`).
+   - `DATABASE_URL` — PostgreSQL connection string used at runtime (e.g. Supabase's
+     transaction pooler, for serverless/Vercel-friendly connection reuse).
+   - `DIRECT_URL` — direct (non-pooled) PostgreSQL connection used by the Prisma CLI
+     for migrations (`npx prisma migrate dev` / `migrate deploy`) — required whenever
+     `DATABASE_URL` points at a connection pooler.
    - `NEXT_PUBLIC_SITE_URL` — your production URL, used in metadata/OG/sitemap.
 2. **Uploaded media** (`public/uploads/`) lives on local disk and is gitignored — it does not
    survive a serverless/Vercel deploy's ephemeral filesystem. For that kind of hosting, swap
