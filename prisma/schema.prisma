@@ -1,0 +1,277 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Anonymous visitor session - random id stored in a first-party cookie, no PII, no fingerprinting.
+model Visitor {
+  id          String   @id @default(cuid())
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @updatedAt
+  isReturning Boolean  @default(false)
+  events      Event[]
+}
+
+// A single browsing session for a visitor (resets after inactivity).
+model Session {
+  id           String    @id @default(cuid())
+  visitorId    String
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  durationMs   Int?
+  referrer     String?
+  utmSource    String?
+  deviceType   String? // mobile | tablet | desktop
+  events       Event[]
+}
+
+// Generic analytics event. `name` matches the tracked event vocabulary (page_view, project_view, etc).
+model Event {
+  id        String   @id @default(cuid())
+  name      String
+  path      String?
+  metadata  String? // JSON-encoded extra context (e.g. project slug)
+  createdAt DateTime @default(now())
+  visitorId String
+  visitor   Visitor  @relation(fields: [visitorId], references: [id])
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id])
+
+  @@index([name])
+  @@index([createdAt])
+}
+
+// Voluntarily submitted contact form lead.
+model ContactLead {
+  id        String           @id @default(cuid())
+  name      String
+  email     String
+  linkedin  String?
+  message   String?
+  status    SubmissionStatus @default(NEW)
+  createdAt DateTime         @default(now())
+}
+
+// ── Content management ──────────────────────────────────────────────────
+// Every editable content model below follows the same lifecycle: DRAFT (being
+// edited, never shown publicly) -> PUBLISHED (live on the public site) ->
+// ARCHIVED (kept for history, hidden). Public queries only ever read PUBLISHED rows.
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SubmissionStatus {
+  NEW
+  READ
+  CONTACTED
+  ARCHIVED
+}
+
+enum MediaKind {
+  IMAGE
+  PDF
+}
+
+// Uploaded file (certificate, winning photo, resume PDF, article cover, ...).
+// Files live on disk under /public/uploads - see lib/media.ts.
+model Media {
+  id          String   @id @default(cuid())
+  filename    String
+  url         String
+  mimeType    String
+  kind        MediaKind
+  size        Int
+  altText     String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  resume                    Resume?
+  certification             Certification?
+  articleCoverOf            Article?
+  achievementCertificateOf  Achievement[] @relation("AchievementCertificate")
+  achievementPhotoOf        Achievement[] @relation("AchievementPhoto")
+}
+
+// Singleton hero/profile content.
+model Profile {
+  id          String   @id @default("profile")
+  name        String
+  headline    String
+  proofLine   String
+  summary     String
+  location    String
+  email       String
+  githubUrl   String?
+  linkedinUrl String?
+  heroVisible Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
+// Singleton site-wide toggles.
+model Settings {
+  id                    String   @id @default("settings")
+  heroProofLineVisible  Boolean  @default(true)
+  updatedAt             DateTime @updatedAt
+}
+
+model Experience {
+  id         String        @id @default(cuid())
+  role       String
+  company    String
+  companyUrl String?
+  startDate  String
+  endDate    String
+  current    Boolean       @default(false)
+  summary    String // newline-separated concise bullets shown by default
+  highlights String // newline-separated full detail bullets
+  tech       String // comma-separated tags
+  order      Int           @default(0)
+  status     ContentStatus @default(DRAFT)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model Project {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  name          String
+  tagline       String
+  badge         String?
+  period        String?
+  problem       String
+  solution      String
+  architecture  String? // lines of "Title :: Description"
+  tech          String // comma-separated
+  contributions String // newline-separated
+  results       String // newline-separated
+  githubUrl     String?
+  demoUrl       String?
+  featured      Boolean       @default(false)
+  pressCoverage Boolean       @default(false)
+  certificateNote String?
+  order         Int           @default(0)
+  status        ContentStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  achievements  Achievement[]
+}
+
+model Achievement {
+  id                  String        @id @default(cuid())
+  title               String
+  meta                String?
+  category            String?
+  description         String
+  detailedDescription String?
+  organization        String?
+  achievementType     String?
+  year                String?
+  link                String?
+  linkLabel           String?
+  featured            Boolean       @default(false)
+  order               Int           @default(0)
+  status              ContentStatus @default(DRAFT)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  projectId           String?
+  project             Project?      @relation(fields: [projectId], references: [id])
+
+  certificateMediaId  String?
+  certificateMedia    Media?        @relation("AchievementCertificate", fields: [certificateMediaId], references: [id])
+
+  photoMediaId        String?
+  photoMedia          Media?        @relation("AchievementPhoto", fields: [photoMediaId], references: [id])
+}
+
+model Certification {
+  id            String        @id @default(cuid())
+  name          String
+  issuer        String
+  issued        String?
+  credentialId  String?
+  credentialUrl String?
+  description   String?
+  order         Int           @default(0)
+  status        ContentStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  mediaId       String?       @unique
+  media         Media?        @relation(fields: [mediaId], references: [id])
+}
+
+model Skill {
+  id        String        @id @default(cuid())
+  name      String
+  category  String
+  order     Int           @default(0)
+  status    ContentStatus @default(DRAFT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Education {
+  id          String        @id @default(cuid())
+  institution String
+  degree      String
+  field       String?
+  startDate   String
+  endDate     String
+  gpa         String?
+  description String?
+  order       Int           @default(0)
+  status      ContentStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+// One row per uploaded resume file. Only one is ever `isCurrent` at a time.
+model Resume {
+  id         String   @id @default(cuid())
+  mediaId    String   @unique
+  media      Media    @relation(fields: [mediaId], references: [id])
+  isCurrent  Boolean  @default(false)
+  uploadedAt DateTime @default(now())
+}
+
+model CodingProfile {
+  id        String        @id @default(cuid())
+  platform  String
+  username  String
+  url       String
+  order     Int           @default(0)
+  status    ContentStatus @default(DRAFT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Article {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  title         String
+  summary       String
+  content       String?
+  tags          String // comma-separated
+  publishedAt   DateTime?
+  status        ContentStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  coverMediaId  String?       @unique
+  coverMedia    Media?        @relation(fields: [coverMediaId], references: [id])
+}
+

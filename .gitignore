@@ -32,10 +32,24 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
+
+# prisma
+/app/generated/
+*.db
+*.db-journal
+
+# user-uploaded media (local disk storage - not durable on serverless hosts,
+# see README for swapping to object storage before deploying there)
+/public/uploads/
+
+
 next-env.d.ts
+
+/app/generated/prisma

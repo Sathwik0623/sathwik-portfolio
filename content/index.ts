@@ -1,0 +1,10 @@
+export * from "./types";
+export { profile } from "./profile";
+export { socialLinks } from "./links";
+export { experience } from "./experience";
+export { projects } from "./projects";
+export { skills } from "./skills";
+export { achievements } from "./achievements";
+export { pressMentions } from "./press";
+export { education, certifications } from "./education";
+export { articles } from "./articles";
