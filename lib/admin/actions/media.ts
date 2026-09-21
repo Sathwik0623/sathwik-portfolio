@@ -7,6 +7,7 @@ import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { saveUploadedFile } from "@/lib/media";
+import { getSupabaseAdminClient, SUPABASE_BUCKET_NAME } from "@/lib/supabase";
 
 export async function uploadMedia(formData: FormData) {
   await requireAdmin();
@@ -27,7 +28,6 @@ export async function uploadMedia(formData: FormData) {
   revalidatePath("/admin/media");
 }
 
-
 export async function updateMediaMeta(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id"));
@@ -41,7 +41,7 @@ export async function updateMediaMeta(formData: FormData) {
   revalidatePath("/admin/media");
 }
 
-/** Deletes a media row and its file, unless it's still attached to content (checked via relation counts). */
+/** Deletes a media row and its file from Storage or disk, unless it's still attached to content. */
 export async function deleteMedia(id: string) {
   await requireAdmin();
   const media = await prisma.media.findUnique({
@@ -68,10 +68,25 @@ export async function deleteMedia(id: string) {
   }
 
   await prisma.media.delete({ where: { id } });
-  try {
-    await unlink(path.join(process.cwd(), "public", media.url));
-  } catch {
-    // File already gone on disk - ignore.
+
+  const supabase = getSupabaseAdminClient();
+  const storagePath = media.url.includes(`/${SUPABASE_BUCKET_NAME}/`)
+    ? media.url.split(`/${SUPABASE_BUCKET_NAME}/`)[1]
+    : null;
+
+  if (supabase && storagePath) {
+    try {
+      await supabase.storage.from(SUPABASE_BUCKET_NAME).remove([storagePath]);
+    } catch {
+      // Supabase file removal error - non-fatal
+    }
+  } else if (media.url.startsWith("/")) {
+    try {
+      await unlink(path.join(process.cwd(), "public", media.url));
+    } catch {
+      // File already gone on disk - ignore.
+    }
   }
+
   revalidatePath("/admin/media");
 }

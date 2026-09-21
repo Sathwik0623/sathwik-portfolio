@@ -25,9 +25,11 @@ Open http://localhost:3000. The admin dashboard is at `/admin` (see below).
      for migrations (`npx prisma migrate dev` / `migrate deploy`) — required whenever
      `DATABASE_URL` points at a connection pooler.
    - `NEXT_PUBLIC_SITE_URL` — your production URL, used in metadata/OG/sitemap.
-2. **Uploaded media** (`public/uploads/`) lives on local disk and is gitignored — it does not
-   survive a serverless/Vercel deploy's ephemeral filesystem. For that kind of hosting, swap
-   `lib/media.ts` to write to object storage (S3, Vercel Blob, Supabase Storage) instead.
+   - `SUPABASE_URL` — your Supabase project URL (e.g. `https://xxx.supabase.co`).
+   - `SUPABASE_SERVICE_ROLE_KEY` — secret service role key for server-side uploads to Supabase Storage.
+2. **Uploaded media & resumes**:
+   - File uploads (resumes, certificates, photos, article covers) are stored in Supabase Storage in the `portfolio-files` bucket.
+   - In local development without Supabase environment variables configured, uploads fall back to local disk (`public/uploads/`).
 
 ## Content management (no code changes needed)
 
@@ -41,6 +43,7 @@ before publishing.
 - `lib/content-queries.ts` — public reads (published-only).
 - `lib/admin/queries.ts` + `lib/admin/actions/*.ts` — admin reads/writes (Server Actions).
 - `lib/media.ts` — file upload validation + storage for certificates, photos, resumes, etc.
+- `lib/supabase.ts` — server-side Supabase client and storage helper for `portfolio-files` bucket.
 - `prisma/seed.ts` — one-time script that migrated the original hardcoded content into the
   database; safe to re-run (it skips if already seeded).
 
@@ -61,4 +64,3 @@ models). No fingerprinting, no third-party trackers. Contact form submissions ar
 `/admin` is protected by `proxy.ts` (Next.js 16's middleware) checking a signed session cookie.
 Log in at `/admin/login` with `ADMIN_PASSWORD`. Pages: Overview, Analytics, Project Analytics,
 Contact Leads — all backed by `lib/analytics-queries.ts`.
-

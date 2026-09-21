@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "*.supabase.in",
+      },
+    ],
+  },
   // Allows loading the dev server from other devices/networks (LAN, VPN, hotspot, etc.)
   // without Next.js blocking cross-origin dev asset requests. Dev-only — never affects
   // the production build. "*" wildcards one hostname label, so these cover the entire

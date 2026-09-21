@@ -3,6 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/media-limits";
+import { getSupabaseAdminClient, ensureStorageBucket, SUPABASE_BUCKET_NAME } from "@/lib/supabase";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
@@ -15,7 +16,7 @@ const ALLOWED_MIME_TO_KIND: Record<string, "IMAGE" | "PDF"> = {
 };
 const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"]);
 
-/** Validates, saves an uploaded file under /public/uploads, and records it in the Media table. */
+/** Validates, saves an uploaded file to Supabase Storage (or local disk in dev), and records it in the Media table. */
 export async function saveUploadedFile(
   file: File,
   meta?: { altText?: string; description?: string },
@@ -30,15 +31,48 @@ export async function saveUploadedFile(
     throw new Error(`File limit exceeded — please upload a file under ${MAX_UPLOAD_LABEL}.`);
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
   const safeName = `${randomUUID()}${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(UPLOAD_DIR, safeName), buffer);
+  const supabase = getSupabaseAdminClient();
+
+  let fileUrl: string;
+
+  if (supabase) {
+    await ensureStorageBucket(supabase, SUPABASE_BUCKET_NAME);
+    const { error } = await supabase.storage
+      .from(SUPABASE_BUCKET_NAME)
+      .upload(safeName, buffer, {
+        contentType: file.type || "application/octet-stream",
+        upsert: true,
+      });
+
+    if (error) {
+      throw new Error(`Supabase Storage upload failed: ${error.message}`);
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from(SUPABASE_BUCKET_NAME)
+      .getPublicUrl(safeName);
+
+    fileUrl = publicUrlData.publicUrl;
+  } else {
+    // In production on Vercel, Supabase Storage credentials are required
+    if (process.env.VERCEL) {
+      throw new Error(
+        "Supabase Storage credentials are not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+      );
+    }
+
+    // Local development fallback to filesystem when Supabase env vars are absent
+    await mkdir(UPLOAD_DIR, { recursive: true });
+    await writeFile(path.join(UPLOAD_DIR, safeName), buffer);
+    fileUrl = `/uploads/${safeName}`;
+  }
 
   return prisma.media.create({
     data: {
       filename: file.name,
-      url: `/uploads/${safeName}`,
+      url: fileUrl,
       mimeType: file.type,
       kind,
       size: file.size,
