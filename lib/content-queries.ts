@@ -8,10 +8,16 @@ function statusFilter(includeDrafts: boolean): Prisma.EnumContentStatusFilter {
   return includeDrafts ? { in: ["DRAFT", "PUBLISHED"] } : { equals: "PUBLISHED" };
 }
 
+function stripBulletPrefix(line: string) {
+  // Older rows may store a manually typed marker ("- ", "* ", "• ", ...).
+  // Renderers add their own marker, so strip it to avoid duplicated bullets.
+  return line.replace(/^\s*(?:[-*•·▪▸>–—]+\s*)+/, "").trim();
+}
+
 function splitLines(value: string | null | undefined) {
   return (value ?? "")
     .split("\n")
-    .map((s) => s.trim())
+    .map((s) => stripBulletPrefix(s))
     .filter(Boolean);
 }
 

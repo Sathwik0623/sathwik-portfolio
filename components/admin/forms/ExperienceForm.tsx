@@ -262,7 +262,7 @@ export function ExperienceForm({ entry }: { entry?: ExperienceRecord }) {
         name="summary"
         defaultValue={entry?.summary}
         rows={3}
-        hint="One bullet per line"
+        hint="One bullet per line — no '- ' or '• ' prefixes needed"
         required
       />
       <TextAreaField
@@ -270,7 +270,7 @@ export function ExperienceForm({ entry }: { entry?: ExperienceRecord }) {
         name="highlights"
         defaultValue={entry?.highlights}
         rows={4}
-        hint="One bullet per line"
+        hint="One bullet per line — no '- ' or '• ' prefixes needed"
         required
       />
       <TextField label="Technologies (comma-separated)" name="tech" defaultValue={entry?.tech} />

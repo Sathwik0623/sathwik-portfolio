@@ -12,9 +12,10 @@ const ALLOWED_MIME_TO_KIND: Record<string, "IMAGE" | "PDF"> = {
   "image/png": "IMAGE",
   "image/webp": "IMAGE",
   "image/gif": "IMAGE",
+  "image/svg+xml": "IMAGE",
   "application/pdf": "PDF",
 };
-const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"]);
+const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".pdf"]);
 
 /** Validates, saves an uploaded file to Supabase Storage (or local disk in dev), and records it in the Media table. */
 export async function saveUploadedFile(
@@ -25,7 +26,7 @@ export async function saveUploadedFile(
   const ext = path.extname(file.name).toLowerCase();
 
   if (!kind || !ALLOWED_EXTENSIONS.has(ext)) {
-    throw new Error("Unsupported file type. Allowed: JPG, PNG, WEBP, GIF, PDF.");
+    throw new Error("Unsupported file type. Allowed: JPG, PNG, WEBP, GIF, SVG, PDF.");
   }
   if (file.size > MAX_UPLOAD_BYTES) {
     throw new Error(`File limit exceeded — please upload a file under ${MAX_UPLOAD_LABEL}.`);
