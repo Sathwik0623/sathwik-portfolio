@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
+import { saveUploadedFile } from "@/lib/media";
 import type { ContentStatus } from "@/app/generated/prisma/client";
 
 function str(formData: FormData, field: string) {
@@ -25,13 +26,32 @@ function order(formData: FormData) {
 export async function saveExperience(formData: FormData) {
   await requireAdmin();
   const id = optStr(formData, "id");
+  const isCurrent = formData.get("current") === "on";
+
+  // Resolve final logoUrl:
+  // 1. If a manual file was uploaded (logoFile field), upload it to storage.
+  // 2. Otherwise use the hidden logoUrl field (detected logo or existing URL).
+  // 3. An empty logoUrl means the admin removed the logo — save null.
+  let resolvedLogoUrl: string | null = optStr(formData, "logoUrl");
+  const logoFile = formData.get("logoFile");
+  if (logoFile instanceof File && logoFile.size > 0) {
+    try {
+      const media = await saveUploadedFile(logoFile, { altText: `${str(formData, "company")} logo` });
+      resolvedLogoUrl = media.url;
+    } catch {
+      // If upload fails, preserve whatever logoUrl was sent
+    }
+  }
+
   const data = {
     role: str(formData, "role"),
     company: str(formData, "company"),
     companyUrl: optStr(formData, "companyUrl"),
+    logoUrl: resolvedLogoUrl,
     startDate: str(formData, "startDate"),
-    endDate: str(formData, "endDate"),
-    current: formData.get("current") === "on",
+    // When currently working here, endDate is null; otherwise require a value
+    endDate: isCurrent ? null : (optStr(formData, "endDate") ?? null),
+    current: isCurrent,
     summary: str(formData, "summary"),
     highlights: str(formData, "highlights"),
     tech: str(formData, "tech"),

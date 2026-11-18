@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -10,6 +11,7 @@ export type ExperienceItemData = {
   role: string;
   company: string;
   companyUrl?: string | null;
+  logoUrl?: string | null;
   startDate: string;
   endDate: string;
   summary: string[];
@@ -53,7 +55,22 @@ function ExperienceItem({ entry, index }: { entry: ExperienceItemData; index: nu
         {entry.startDate} — {entry.endDate}
       </p>
       <h3 className="text-lg font-semibold">{entry.role}</h3>
-      <p className="text-sm text-accent mb-3">{entry.company}</p>
+
+      {/* Company name + optional logo */}
+      <div className="flex items-center gap-2 mb-3">
+        {entry.logoUrl && (
+          <Image
+            src={entry.logoUrl}
+            alt={`${entry.company} logo`}
+            width={20}
+            height={20}
+            className="rounded object-contain flex-shrink-0"
+            style={{ width: 20, height: 20, objectFit: "contain" }}
+            unoptimized
+          />
+        )}
+        <p className="text-sm text-accent">{entry.company}</p>
+      </div>
 
       <ul className="space-y-2">
         {entry.summary.map((h) => (
@@ -106,4 +123,3 @@ function ExperienceItem({ entry, index }: { entry: ExperienceItemData; index: nu
     </motion.li>
   );
 }
-

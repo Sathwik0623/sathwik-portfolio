@@ -131,8 +131,9 @@ model Experience {
   role       String
   company    String
   companyUrl String?
+  logoUrl    String? // persistent URL of company logo in Supabase Storage
   startDate  String
-  endDate    String
+  endDate    String? // null when current=true (ongoing role)
   current    Boolean       @default(false)
   summary    String // newline-separated concise bullets shown by default
   highlights String // newline-separated full detail bullets

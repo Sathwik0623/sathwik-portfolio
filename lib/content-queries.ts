@@ -49,8 +49,10 @@ export async function getPublicExperience(includeDrafts = false) {
       role: e.role,
       company: e.company,
       companyUrl: e.companyUrl,
+      logoUrl: e.logoUrl ?? null,
       startDate: e.startDate,
-      endDate: e.current ? "Present" : e.endDate,
+      // null endDate means the role is ongoing — display "Present"
+      endDate: e.current || !e.endDate ? "Present" : e.endDate,
       summary: splitLines(e.summary),
       highlights: splitLines(e.highlights),
       tech: splitCsv(e.tech),
